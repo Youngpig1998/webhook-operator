@@ -28,6 +28,14 @@ type WebHookSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// Size is the size of the memcached deployment
 	Size int32 `json:"size"`
+	// The mirror image corresponding to the business service, including the name: tag
+	Image string `json:"image"`
+	// The caBundle certificate corresponding to the business service
+	CaBundle string `json:"caBundle"`
+	// The cert certificate corresponding to the business service
+	TlsCert string `json:"tls.cert"`
+	// The key of the certificate corresponding to the business service
+	TlsKey string `json:"tls.key"`
 }
 
 // WebHookStatus defines the observed state of WebHook
