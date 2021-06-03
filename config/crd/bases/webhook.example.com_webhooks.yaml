@@ -36,13 +36,39 @@ spec:
           spec:
             description: WebHookSpec defines the desired state of WebHook
             properties:
-              size:
-                description: Size is the size of the memcached deployment
-                format: int32
-                minimum: 0
-                type: integer
+              caBundle:
+                description: The caBundle certificate corresponding to the business
+                  service
+                type: string
+              dockerRegistryPrefix:
+                description: The mirror image corresponding to the business service,
+                  including the dockerregistryprefix
+                type: string
+              imagePullSecrets:
+                description: 'The mirror image corresponding to the business service,
+                  including the name: tag'
+                items:
+                  description: LocalObjectReference contains enough information to
+                    let you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?'
+                      type: string
+                  type: object
+                type: array
+              tlsCert:
+                description: The cert certificate corresponding to the business service
+                type: string
+              tlsKey:
+                description: The key of the certificate corresponding to the business
+                  service
+                type: string
             required:
-            - size
+            - caBundle
+            - dockerRegistryPrefix
+            - tlsCert
+            - tlsKey
             type: object
           status:
             description: WebHookStatus defines the observed state of WebHook

@@ -19,7 +19,6 @@ package controllers
 import (
 	b64 "encoding/base64"
     "reflect"
-    "unsafe"
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
@@ -107,7 +106,8 @@ func (r *WebHookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	deployment := &appsv1.Deployment{}
 
 	// Query with client tools
-	err = r.Get(ctx, req.NamespacedName, deployment)
+	err = r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: "audit-webhook-server"}, deployment)
+	//err = r.Get(ctx, req.NamespacedName, deployment)
 
 	// An exception occurred during the search, and the processing logic that found no results
 	if err != nil {
@@ -116,15 +116,14 @@ func (r *WebHookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			log.Info("4. deployment not exists")
 
 			// If there is no demand for Size and there is no deployment at this time, nothing will be done
-			if instance.Spec.Size < 1 {
-				log.Info("5.1 not need deployment")
-				// return
-				return ctrl.Result{}, nil
-			}
+			//if instance.Spec.Size < 1 {
+			//	log.Info("5.1 not need deployment")
+			//	return ctrl.Result{}, nil
+			//}
 
-			// First, create service
-			if err = createServiceIfNotExists(ctx, r, instance, req); err != nil {
-				log.Error(err, "5.2 error")
+			// Create secret
+			if err = createSecretIfNotExists(ctx, r, instance, req); err != nil {
+				log.Error(err, "5.4 error")
 				// Return error message to the outside
 				return ctrl.Result{}, err
 			}
@@ -136,12 +135,14 @@ func (r *WebHookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				return ctrl.Result{}, err
 			}
 
-			// Create secret
-			if err = createSecretIfNotExists(ctx, r, instance, req); err != nil {
-				log.Error(err, "5.4 error")
+			// First, create service
+			if err = createServiceIfNotExists(ctx, r, instance, req); err != nil {
+				log.Error(err, "5.2 error")
 				// Return error message to the outside
 				return ctrl.Result{}, err
 			}
+
+
 
 
 			// Create deployment immediately
@@ -224,7 +225,8 @@ func createServiceIfNotExists(ctx context.Context, r *WebHookReconciler, webHook
 	service := &corev1.Service{}
 
 	// Query with client tools
-	err := r.Get(ctx, req.NamespacedName, service)
+	err := r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: "audit-webhook-service"}, service)
+	//err := r.Get(ctx, req.NamespacedName, service)
 
 	// If there is no error in the query result, it proves that the service is normal, and nothing is done
 	if err == nil {
@@ -284,21 +286,11 @@ func createServiceIfNotExists(ctx context.Context, r *WebHookReconciler, webHook
 func createConfigmapIfNotExists(ctx context.Context, r *WebHookReconciler, webHook *webhookv1.WebHook, req ctrl.Request) error {
 	log := r.Log.WithValues("func", "createConfigmap")
 
-	// configmap := &corev1.ConfigMap{}
+	configmap := &corev1.ConfigMap{}
 
-	// Instantiate a data structure
-	configmap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: webHook.Namespace,
-			Name:      "audit-webhook-configmap",
-		},
-		Data: map[string]string{
-			"volume_patch": VOLUME_PATCH,
-			"container_patch": CONTAINER_PATCH,
-		},
-	}
 
-	err := r.Get(ctx, req.NamespacedName, configmap)
+	//err := r.Get(ctx, req.NamespacedName, configmap)
+	err := r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: "audit-webhook-configmap"}, configmap)
 
 	// If there is no error in the query result, it proves that the configmap is normal, and nothing is done
 	if err == nil {
@@ -312,17 +304,18 @@ func createConfigmapIfNotExists(ctx context.Context, r *WebHookReconciler, webHo
 		return err
 	}
 
-	// Instantiate a data structure
-	// configmap = &corev1.ConfigMap{
-	// 	ObjectMeta: metav1.ObjectMeta{
-	// 		Namespace: webHook.Namespace,
-	// 		Name:      "audit-webhook-configmap",
-	// 	},
-	// 	Data: map[string]string{
-	// 		"volume_patch": VOLUME_PATCH,
-	// 		"container_patch": CONTAINER_PATCH,
-	// 	},
-	// }
+
+	//Instantiate a data structure
+	configmap = &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: webHook.Namespace,
+			Name:      "audit-webhook-configmap",
+		},
+		Data: map[string]string{
+			"volume_patch": VOLUME_PATCH,
+			"container_patch": CONTAINER_PATCH,
+		},
+	}
 
 
 	// This step is very critical!
@@ -353,7 +346,8 @@ func createSecretIfNotExists(ctx context.Context, r *WebHookReconciler, webHook 
 	secret := &corev1.Secret{}
 
 	// Query with client tools
-	err := r.Get(ctx, req.NamespacedName, secret)
+	err := r.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: "audit-webhook-tls-secret"}, secret)
+	//err := r.Get(ctx, req.NamespacedName, secret)
 
 	secretType := corev1.SecretTypeTLS
 
@@ -425,6 +419,8 @@ func createDeployment(ctx context.Context, r *WebHookReconciler, webHook *webhoo
 
 	log.Info(fmt.Sprintf("expectReplicas 1"))
 
+	imageName := webHook.Spec.DockerRegistryPrefix + "/audit-webhook:v0.1.0"
+
 	// Instantiate a data structure
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -450,7 +446,7 @@ func createDeployment(ctx context.Context, r *WebHookReconciler, webHook *webhoo
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image:           webHook.Spec.Image,
+						Image:           imageName,
 						ImagePullPolicy: "IfNotPresent",
 						Name:            APP_NAME,
 						Command: []string{"/audit-webhook"},
@@ -503,6 +499,7 @@ func createDeployment(ctx context.Context, r *WebHookReconciler, webHook *webhoo
 							},
 						},
 					}},
+					ImagePullSecrets: webHook.Spec.ImagePullSecrets,
 					Volumes: []corev1.Volume{
 						{
 							Name: "certs",
@@ -646,21 +643,6 @@ func createMutatingWebhookConfigurationIfNotExists(ctx context.Context, r *WebHo
 
 
 
-
-
-//string to []byte
-// func stringtoslicebyte(s string) (b []byte) {
-// 	*(*string)(unsafe.Pointer(&b)) = s //把s的地址付给b 
-// 	*(*int)(unsafe.Pointer(uintptr(unsafe.Pointer(&b)) + 2 * unsafe.Sizeof(&b))) = len(s)
-// 	return
-//     // sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-//     // bh := reflect.SliceHeader{
-//     //     Data: sh.Data,
-//     //     Len:  sh.Len,
-//     //     Cap:  sh.Len,
-//     // }
-//     // return *(*[]byte)(unsafe.Pointer(&bh))
-// }
 
 
 

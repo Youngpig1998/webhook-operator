@@ -13,4 +13,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: youngpig/webhook-operator
-  newTag: v3
+  newTag: v4

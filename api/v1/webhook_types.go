@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,17 +26,16 @@ import (
 
 // WebHookSpec defines the desired state of WebHook
 type WebHookSpec struct {
-	// +kubebuilder:validation:Minimum=0
-	// Size is the size of the memcached deployment
-	Size int32 `json:"size"`
 	// The mirror image corresponding to the business service, including the name: tag
-	Image string `json:"image"`
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,15,rep,name=imagePullSecrets"`
+	// The mirror image corresponding to the business service, including the dockerregistryprefix
+	DockerRegistryPrefix string `json:"dockerRegistryPrefix"`
 	// The caBundle certificate corresponding to the business service
 	CaBundle string `json:"caBundle"`
 	// The cert certificate corresponding to the business service
-	TlsCert string `json:"tls.cert"`
+	TlsCert string `json:"tlsCert"`
 	// The key of the certificate corresponding to the business service
-	TlsKey string `json:"tls.key"`
+	TlsKey string `json:"tlsKey"`
 }
 
 // WebHookStatus defines the observed state of WebHook
