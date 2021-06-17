@@ -44,7 +44,6 @@ import (
 const (
 	// APP tag name in deployment
 	APP_NAME = "audit-webhook"
-
 	// CPU resource application for a single POD
 	CPU_REQUEST = "300m"
 	// Upper limit of CPU resources of a single POD
@@ -305,8 +304,9 @@ func createConfigmapIfNotExists(ctx context.Context, r *WebHookReconciler, webHo
 		return err
 	}
 
-	VOLUME_PATCH := "{\"name\":\"internal-tls\",\"secret\":{\"secretName\":\"internal-tls\",\"defaultMode\":420}}"
-	CONTAINER_PATCH := "{\"name\":\"sidecar\",\"image\":\"fanzhan1/fluent:1.10-plugin-script\",\"securityContext\":{\"runAsNonRoot\":true},\"resources\":{\"requests\":{\"memory\":\"100Mi\",\"cpu\":\"100m\"},\"limits\":{\"memory\":\"250Mi\",\"cpu\":\"250m\"}},\"imagePullPolicy\":\"IfNotPresent\",\"args\":[\"/bin/bash\",\"-c\",\"fluentd -c /fluentd/etc/fluent.conf\"],\"volumeMounts\":[{\"name\":\"varlog\",\"mountPath\":\"/var/log\"}],\"env\":[{\"name\":\"NS_DOMAIN\",\"value\":\""+ webHook.Namespace   + "\"}]}"
+	imageName := webHook.Spec.DockerRegistryPrefix + "/fluent:1.10-plugin-script"
+	volume_patch := "{\"name\":\"internal-tls\",\"secret\":{\"secretName\":\"internal-tls\",\"defaultMode\":420}}"
+	container_patch := "{\"name\":\"sidecar\",\"image\":\"" + imageName  + "\",\"securityContext\":{\"runAsNonRoot\":true},\"resources\":{\"requests\":{\"memory\":\"100Mi\",\"cpu\":\"100m\"},\"limits\":{\"memory\":\"250Mi\",\"cpu\":\"250m\"}},\"imagePullPolicy\":\"IfNotPresent\",\"args\":[\"/bin/bash\",\"-c\",\"fluentd -c /fluentd/etc/fluent.conf\"],\"volumeMounts\":[{\"name\":\"varlog\",\"mountPath\":\"/var/log\"}],\"env\":[{\"name\":\"NS_DOMAIN\",\"value\":\""+ webHook.Namespace   + "\"}]}"
 
 
 	//Instantiate a data structure
@@ -316,8 +316,8 @@ func createConfigmapIfNotExists(ctx context.Context, r *WebHookReconciler, webHo
 			Name:      "audit-webhook-configmap",
 		},
 		Data: map[string]string{
-			"volume_patch": VOLUME_PATCH,
-			"container_patch": CONTAINER_PATCH,
+			"volume_patch": volume_patch,
+			"container_patch": container_patch,
 		},
 	}
 
