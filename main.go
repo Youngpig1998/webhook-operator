@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	corev1 "k8s.io/api/core/v1"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -63,6 +64,15 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+
+	//定义configmap监听者
+	var co = controllers.CmObserver{
+		Log:    ctrl.Log.WithName("controllers").WithName("WebHook"),
+		Cm: &corev1.ConfigMap{},
+	}
+
+
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -82,6 +92,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("WebHook"),
 		Scheme: mgr.GetScheme(),
+		Co: co,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "WebHook")
 		os.Exit(1)
@@ -102,4 +113,6 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
+
 }
