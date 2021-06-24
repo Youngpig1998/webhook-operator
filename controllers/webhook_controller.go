@@ -285,6 +285,7 @@ func observeConfigmap(ctx context.Context, r *WebHookReconciler, webHook *webhoo
 
 
 
+
 //Observe secret
 func observeSecret(ctx context.Context, r *WebHookReconciler, webHook *webhookv1.WebHook, req ctrl.Request)  {
 	log := r.Log.WithValues("func", "observeSecret")
@@ -686,36 +687,4 @@ func getPodNames(pods []corev1.Pod) []string {
 	}
 	return podNames
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
