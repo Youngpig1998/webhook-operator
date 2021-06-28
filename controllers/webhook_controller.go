@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -41,28 +40,12 @@ import (
 
 
 
-const (
-	// APP tag name in deployment
-	APP_NAME = "audit-webhook"
-	// CPU resource application for a single POD
-	CPU_REQUEST = "300m"
-	// Upper limit of CPU resources of a single POD
-	CPU_LIMIT = "500m"
-	// Memory resource application for a single POD
-	MEM_REQUEST = "100Mi"
-	// Upper limit of memory resources of a single POD
-	MEM_LIMIT = "200Mi"
-
-)
-
-
-
 // WebHookReconciler reconciles a WebHook object
 type WebHookReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
-	Co     CmObserver
+	Observes [5] Observe
 }
 
 // +kubebuilder:rbac:groups=webhook.example.com,resources=webhooks,verbs=get;list;watch;create;update;patch;delete
@@ -102,16 +85,39 @@ func (r *WebHookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 
-	go observeSecret(ctx,r,instance,req)
-	go observeConfigmap(ctx,r,instance,req)
-	go observeService(ctx,r,instance,req)
-	go observeDeployment(ctx,r,instance,req)
-	go observeMutatingWebhookConfiguration(ctx,r,instance,req)
+
+	//go observeSecret(ctx,r,instance,req)
+	//go observeConfigmap(ctx,r,instance,req)
+	//go observeService(ctx,r,instance,req)
+	//go observeDeployment(ctx,r,instance,req)
+	//go observeMutatingWebhookConfiguration(ctx,r,instance,req)
+
+	Working(r.Observes,ctx,r,instance,req)
 
 
 	return ctrl.Result{}, nil
 	
 }
+
+
+
+
+func Working(ob [5]Observe,ctx context.Context, r *WebHookReconciler, webHook *webhookv1.WebHook, req ctrl.Request) {
+	var i int
+	for i = 0; i < 5; i++ {
+		go ob[i].Update(ctx,r,webHook,req)
+	}
+}
+
+
+
+
+
+
+
+
+
+
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *WebHookReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -537,33 +543,7 @@ func observeDeployment(ctx context.Context, r *WebHookReconciler, webHook *webho
 }
 
 
-// After processing the pod, update the latest status
-func updateStatus(ctx context.Context, r *WebHookReconciler, webHook *webhookv1.WebHook, req ctrl.Request) error {
-	log := r.Log.WithValues("webhook", req.NamespacedName)
-	// Update the WebHook status with the pod names
-	// List the pods for this WebHook's deployment
-	podList := &corev1.PodList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(webHook.Namespace),
-	}
-	if err := r.List(ctx, podList, listOpts...); err != nil {
-		log.Error(err, "Failed to list pods", "WebHook.Namespace", webHook.Namespace)
-		return  err
-	}
-	podNames := getPodNames(podList.Items)
 
-	// Update status.Nodes if needed
-	if !reflect.DeepEqual(podNames, webHook.Status.Nodes) {
-		webHook.Status.Nodes = podNames
-		err := r.Status().Update(ctx, webHook)
-		if err != nil {
-			log.Error(err, "Failed to update WebHook's status")
-			return  err
-		}
-	}
-
-	return nil
-}
 
 
 
@@ -678,13 +658,4 @@ func observeMutatingWebhookConfiguration(ctx context.Context, r *WebHookReconcil
 
 
 
-
-// getPodNames returns the pod names of the array of pods passed in
-func getPodNames(pods []corev1.Pod) []string {
-	var podNames []string
-	for _, pod := range pods {
-		podNames = append(podNames, pod.Name)
-	}
-	return podNames
-}
 

@@ -18,9 +18,10 @@ package main
 
 import (
 	"flag"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"os"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -64,13 +65,43 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-
-	//定义configmap监听者
-	var co = controllers.CmObserver{
+	var observer = controllers.Observer{
 		Log:    ctrl.Log.WithName("controllers").WithName("WebHook"),
-		Cm: &corev1.ConfigMap{},
 	}
 
+	//定义secret监听者
+	var secretObserver = controllers.SecretObserver{
+		Observer:   observer,
+		Secret: &corev1.Secret{},
+	}
+	//定义configmap监听者
+	var co = controllers.CmObserver{
+		Observer:   observer,
+		Cm: &corev1.ConfigMap{},
+	}
+	//定义service监听者
+	var serviceObserver = controllers.ServiceObserver{
+		Observer:   observer,
+		Service: &corev1.Service{},
+	}
+	//定义deployment监听者
+	var deploymentObserver = controllers.DeploymentObserver{
+		Observer:   observer,
+		Deployment: &appsv1.Deployment{},
+	}
+	//定义mu监听者
+	var mo = controllers.MutatingWebhookConfigObserver{
+		Observer:   observer,
+		Mc: &admissionregistrationv1beta1.MutatingWebhookConfiguration{},
+	}
+
+	var observes = [5]controllers.Observe{
+		&serviceObserver,
+		&co,
+		&secretObserver,
+		&deploymentObserver,
+		&mo,
+	}
 
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
@@ -92,7 +123,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("WebHook"),
 		Scheme: mgr.GetScheme(),
-		Co: co,
+		Observes: observes,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "WebHook")
 		os.Exit(1)
