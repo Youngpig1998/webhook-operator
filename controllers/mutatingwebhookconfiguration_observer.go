@@ -63,7 +63,7 @@ func (co *MutatingWebhookConfigObserver) Update(ctx context.Context, r *WebHookR
 
 		// If there is no error in the query result, it proves that the configmap is normal, and nothing is done
 		if err == nil {
-			log.Info("MutatingWebhookConfiguration exists")
+			//log.Info("MutatingWebhookConfiguration exists")
 			time.Sleep(1000 * time.Millisecond)
 			continue
 		}

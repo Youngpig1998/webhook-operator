@@ -35,8 +35,16 @@ type WebHookReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
-	Observes [5] Observe
+	Observes [6] Observe
 }
+
+
+
+
+
+
+
+
 
 // +kubebuilder:rbac:groups=webhook.example.com,resources=webhooks,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=webhook.example.com,resources=webhooks/status,verbs=get;update;patch
@@ -76,7 +84,10 @@ func (r *WebHookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 
 
+
 	Working(r.Observes,ctx,r,instance,req)
+
+
 
 
 	return ctrl.Result{}, nil
@@ -86,9 +97,9 @@ func (r *WebHookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 
 
-func Working(ob [5]Observe,ctx context.Context, r *WebHookReconciler, webHook *webhookv1.WebHook, req ctrl.Request) {
+func Working(ob [6]Observe,ctx context.Context, r *WebHookReconciler, webHook *webhookv1.WebHook, req ctrl.Request) {
 	var i int
-	for i = 0; i < 5; i++ {
+	for i = 0; i < 6; i++ {
 		go ob[i].Update(ctx,r,webHook,req)
 	}
 }
@@ -102,6 +113,7 @@ func (r *WebHookReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&webhookv1.WebHook{}).
 		Complete(r)
 }
+
 
 
 

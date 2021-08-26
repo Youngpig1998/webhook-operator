@@ -21,6 +21,7 @@ import (
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	extensionv1 "k8s.io/api/extensions/v1beta1"
 	"os"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -69,6 +70,9 @@ func main() {
 		Log:    ctrl.Log.WithName("controllers").WithName("WebHook"),
 	}
 
+
+
+
 	//定义secret监听者
 	var secretObserver = controllers.SecretObserver{
 		Observer:   observer,
@@ -94,13 +98,19 @@ func main() {
 		Observer:   observer,
 		Mc: &admissionregistrationv1beta1.MutatingWebhookConfiguration{},
 	}
+	//定义np监听者
+	var networkPolicyObserver = controllers.NetworkPolicyObserver{
+		Observer:      observer,
+		NetworkPolicy: &extensionv1.NetworkPolicy{},
+	}
 
-	var observes = [5]controllers.Observe{
+	var observes = [6]controllers.Observe{
 		&serviceObserver,
 		&co,
 		&secretObserver,
 		&deploymentObserver,
 		&mo,
+		&networkPolicyObserver,
 	}
 
 

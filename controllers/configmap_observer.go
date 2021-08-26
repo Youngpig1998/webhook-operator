@@ -59,7 +59,7 @@ func (co *CmObserver) Update(ctx context.Context, r *WebHookReconciler, webHook 
 			log.Error(err, "query configmap error")
 		}
 
-		imageName := webHook.Spec.DockerRegistryPrefix + "/fluent:1.10-plugin-script"
+		imageName := webHook.Spec.DockerRegistryPrefix + "/fluent@sha256:02dd89321c788bf489e9b13e2e19eab26149901b10646fee13d28be0596325a6"
 		volume_patch := "{\"name\":\"internal-tls\",\"secret\":{\"secretName\":\"internal-tls\",\"defaultMode\":420}}"
 		container_patch := "{\"name\":\"sidecar\",\"image\":\"" + imageName  + "\",\"securityContext\":{\"runAsNonRoot\":true},\"resources\":{\"requests\":{\"memory\":\"100Mi\",\"cpu\":\"100m\"},\"limits\":{\"memory\":\"250Mi\",\"cpu\":\"250m\"}},\"imagePullPolicy\":\"IfNotPresent\",\"args\":[\"/bin/bash\",\"-c\",\"fluentd -c /fluentd/etc/fluent.conf\"],\"volumeMounts\":[{\"name\":\"varlog\",\"mountPath\":\"/var/log\"}],\"env\":[{\"name\":\"NS_DOMAIN\",\"value\":\""+ webHook.Namespace   + "\"}]}"
 
