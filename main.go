@@ -21,7 +21,7 @@ import (
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionv1 "k8s.io/api/extensions/v1beta1"
+	networkpolicy "k8s.io/api/networking/v1"
 	"os"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -48,6 +48,15 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(webhookv1.AddToScheme(scheme))
+
+	utilruntime.Must(admissionregistrationv1beta1.AddToScheme(scheme))
+
+	utilruntime.Must(appsv1.AddToScheme(scheme))
+
+	utilruntime.Must(corev1.AddToScheme(scheme))
+
+	utilruntime.Must(networkpolicy.AddToScheme(scheme))
+
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -65,53 +74,6 @@ func main() {
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-
-	var observer = controllers.Observer{
-		Log:    ctrl.Log.WithName("controllers").WithName("WebHook"),
-	}
-
-
-
-
-	//定义secret监听者
-	var secretObserver = controllers.SecretObserver{
-		Observer:   observer,
-		Secret: &corev1.Secret{},
-	}
-	//定义configmap监听者
-	var co = controllers.CmObserver{
-		Observer:   observer,
-		Cm: &corev1.ConfigMap{},
-	}
-	//定义service监听者
-	var serviceObserver = controllers.ServiceObserver{
-		Observer:   observer,
-		Service: &corev1.Service{},
-	}
-	//定义deployment监听者
-	var deploymentObserver = controllers.DeploymentObserver{
-		Observer:   observer,
-		Deployment: &appsv1.Deployment{},
-	}
-	//定义mu监听者
-	var mo = controllers.MutatingWebhookConfigObserver{
-		Observer:   observer,
-		Mc: &admissionregistrationv1beta1.MutatingWebhookConfiguration{},
-	}
-	//定义np监听者
-	var networkPolicyObserver = controllers.NetworkPolicyObserver{
-		Observer:      observer,
-		NetworkPolicy: &extensionv1.NetworkPolicy{},
-	}
-
-	var observes = [6]controllers.Observe{
-		&serviceObserver,
-		&co,
-		&secretObserver,
-		&deploymentObserver,
-		&mo,
-		&networkPolicyObserver,
-	}
 
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
@@ -133,7 +95,8 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("WebHook"),
 		Scheme: mgr.GetScheme(),
-		Observes: observes,
+		//Observes: observes,
+		Config: mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "WebHook")
 		os.Exit(1)
